@@ -1,0 +1,2 @@
+# Vendored libraries are committed byte-for-byte (SHA-256s in web/vendor/VERSIONS.txt)
+web/vendor/** -text

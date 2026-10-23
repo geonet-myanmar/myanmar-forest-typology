@@ -1,0 +1,10 @@
+# Data preparation (scripts/) and tests, on top of requirements.txt
+-r requirements.txt
+requests>=2.32
+geopandas==1.1.1
+numpy>=2.2
+scipy>=1.15
+pillow>=11
+rasterio>=1.4
+pytest>=9
+playwright>=1.64

@@ -1,0 +1,19 @@
+.vercel
+.env*
+# Upload only what the API needs: app/, data/mimu, web/data/atlas.json, the dependency files and vercel.json.
+web/js/
+web/css/
+web/vendor/
+web/index.html
+web/data/admin.topo.json
+tests/
+scripts/
+data/raw/
+cache/
+.github/
+.pytest_cache/
+**/__pycache__/
+*.md
+*.log
+*.key.json
+*service-account*.json

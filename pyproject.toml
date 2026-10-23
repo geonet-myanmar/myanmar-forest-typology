@@ -1,0 +1,16 @@
+[project]
+name = "myanmar-forest-typology"
+version = "1.0.0"
+description = "Map and analyse Google's Forest Typology (ForTy) 2020 v1.0 at 10 m for any area in Myanmar"
+requires-python = ">=3.12"
+dependencies = [
+    "earthengine-api==1.7.1",
+    "fastapi==0.136.1",
+    "uvicorn==0.35.0",
+    "shapely==2.1.1",
+    "pyproj>=3.7",
+]
+
+# Vercel loads the FastAPI instance from app/main.py as a module, so the package-relative imports work.
+[tool.vercel]
+entrypoint = "app.main:app"

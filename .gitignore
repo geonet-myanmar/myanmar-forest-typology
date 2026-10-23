@@ -1,0 +1,21 @@
+# Regenerable caches and logs
+cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log
+
+# Raw downloads and the per-township atlas cache (scripts re-fetch / rebuild them);
+# data/mimu, web/data/admin.topo.json and web/data/atlas.json are the built products and stay
+data/raw/
+
+# Never commit credentials
+*.key.json
+*service-account*.json
+.env
+.env.*
+.claude/
+_prev_*/
+
+# Vercel CLI link (per machine)
+.vercel/

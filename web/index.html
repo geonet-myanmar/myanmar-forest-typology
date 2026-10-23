@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Myanmar Forest Typology</title>
+<meta name="description" content="Map and analyse Google's Forest Typology (ForTy) 2020 v1.0 at 10 m for any township, district, State/Region, drawn or uploaded area in Myanmar.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B7837'/%3E%3Cpath d='M16 5l7 10h-4l5 7h-6v5h-4v-5H8l5-7H9z' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Myanmar:wght@400;500&display=swap">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet-geoman-free/leaflet-geoman.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <div class="eyebrow">Forest Typology (ForTy) 2020 v1.0 · 10 m · Myanmar</div>
+      <h1>Myanmar Forest Typology Explorer</h1>
+    </div>
+    <button class="aoichip" id="aoichip" type="button" title="Area of interest" hidden></button>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="themebtn" type="button" aria-label="Switch colour theme" title="Theme: follow system"></button>
+  </header>
+
+  <main class="work">
+    <section class="mapwrap" aria-label="Map">
+      <div id="map"></div>
+      <details class="layers" id="layers" open>
+        <summary>Layers</summary>
+        <label class="row">Basemap
+          <select id="basemap">
+            <option value="imagery">Esri imagery (today)</option>
+            <option value="light">Esri light grey</option>
+            <option value="dark">Esri dark grey</option>
+            <option value="none">None</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" id="ly-forty" checked> ForTy layer</label>
+        <label class="chk"><input type="checkbox" id="ly-labels" checked> Place labels</label>
+        <label class="chk"><input type="checkbox" id="ly-admin"> MIMU boundaries</label>
+        <label class="chk"><input type="checkbox" id="ly-dim" checked> Dim outside area</label>
+        <label class="chk"><input type="checkbox" id="ly-choro" disabled> Breakdown map</label>
+      </details>
+      <div class="legend" id="legend" hidden></div>
+      <div class="legend choro" id="chorolegend" hidden></div>
+      <div class="maptoast" id="maptoast" hidden></div>
+    </section>
+
+    <aside class="panel">
+      <div class="tabs" role="tablist" id="tabs">
+        <button role="tab" data-tab="area" aria-selected="true">Area</button>
+        <button role="tab" data-tab="map" aria-selected="false">Map</button>
+        <button role="tab" data-tab="analyze" aria-selected="false">Analyze</button>
+        <button role="tab" data-tab="about" aria-selected="false">About</button>
+      </div>
+      <div class="tabbody">
+
+        <!-- AREA -->
+        <section class="tab" id="tab-area" role="tabpanel">
+          <div class="card aoicard" id="aoicard" hidden></div>
+          <div class="seg" role="radiogroup" aria-label="How to choose the area" id="aoimode">
+            <button type="button" data-mode="admin" aria-pressed="true">Admin unit</button>
+            <button type="button" data-mode="draw" aria-pressed="false">Draw</button>
+            <button type="button" data-mode="upload" aria-pressed="false">Upload</button>
+          </div>
+
+          <div class="mode" id="mode-admin">
+            <p class="hint">Pick a State/Region, District or Township (MIMU PCode v9.4), or the whole country. Search accepts English or Myanmar names. Statistics for these units are precomputed at 10 m and open instantly.</p>
+            <label class="field">Search
+              <input type="search" id="adminsearch" placeholder="e.g. Hpakant, ဖားကန့်, Tanintharyi" autocomplete="off">
+            </label>
+            <ul class="results" id="adminresults" hidden></ul>
+            <label class="field">State / Region<select id="sel-st"></select></label>
+            <label class="field">District<select id="sel-dt" disabled></select></label>
+            <label class="field">Township<select id="sel-ts" disabled></select></label>
+            <div class="btnrow">
+              <button class="btn primary" type="button" id="adminuse" disabled>Use this area</button>
+              <button class="btn" type="button" id="adminmm">Whole Myanmar</button>
+              <label class="chk"><input type="checkbox" id="adminpick"> Pick on map</label>
+            </div>
+          </div>
+
+          <div class="mode" id="mode-draw" hidden>
+            <p class="hint">Draw on the map. Polygons close on the first point (or double-click). Statistics for drawn areas run live in Earth Engine at 10 m (about 3 s per 1,000 km²).</p>
+            <div class="btnrow">
+              <button class="btn" type="button" data-draw="Rectangle">Rectangle</button>
+              <button class="btn" type="button" data-draw="Polygon">Polygon</button>
+              <button class="btn" type="button" data-draw="Circle">Circle</button>
+            </div>
+            <div class="btnrow">
+              <button class="btn" type="button" id="drawedit" disabled>Edit shape</button>
+              <button class="btn" type="button" id="drawcancel" hidden>Cancel drawing</button>
+            </div>
+          </div>
+
+          <div class="mode" id="mode-upload" hidden>
+            <label class="drop" id="drop">
+              <input type="file" id="fileinput" multiple accept=".geojson,.json,.kml,.kmz,.zip,.shp,.shx,.dbf,.prj,.cpg,.gpx">
+              <b>Drop a file here</b> or click to browse
+              <span class="note">GeoJSON · KML · KMZ · zipped Shapefile · .shp + .dbf + .prj set · GPX. Files are read in your browser; only the polygon is sent for analysis.</span>
+            </label>
+            <div id="uploadstep"></div>
+          </div>
+        </section>
+
+        <!-- MAP -->
+        <section class="tab" id="tab-map" role="tabpanel" hidden>
+          <div class="group">
+            <h3>Layer</h3>
+            <div class="seg" role="radiogroup" aria-label="Layer" id="lymode">
+              <button type="button" data-ly="class" aria-pressed="true">Forest type</button>
+              <button type="button" data-ly="score" aria-pressed="false">Scores</button>
+              <button type="button" data-ly="confidence" aria-pressed="false">Confidence</button>
+            </div>
+
+            <div class="ly" id="ly-class">
+              <label class="field">Colours
+                <select id="palette">
+                  <option value="official">ForTy colours (as published)</option>
+                  <option value="safe">Colour-blind safe</option>
+                </select>
+              </label>
+              <div class="classlist" id="classlist" role="group" aria-label="Classes to show"></div>
+              <div class="btnrow">
+                <button class="btn small" type="button" id="cls-all">All</button>
+                <button class="btn small" type="button" id="cls-forest">Forest only</button>
+                <button class="btn small" type="button" id="cls-trees">Hide other land</button>
+              </div>
+            </div>
+
+            <div class="ly" id="ly-score" hidden>
+              <label class="field">Score for
+                <select id="sc-target">
+                  <option value="forest">All forest (classes 1–4 summed)</option>
+                  <option value="natural">Natural forest (1–2 summed)</option>
+                  <option value="managed">Planted + plantation forest (3–4 summed)</option>
+                  <option value="1">Primary forest</option>
+                  <option value="2">Naturally regenerating forest</option>
+                  <option value="3">Planted forest</option>
+                  <option value="4">Plantation forest</option>
+                  <option value="5">Tree crops &amp; agroforestry</option>
+                  <option value="6">Other land</option>
+                </select>
+              </label>
+              <label class="field slider">Hide below <input type="range" id="sc-min" min="0.05" max="0.9" step="0.05" value="0.1"><output id="o-scmin">0.10</output></label>
+            </div>
+
+            <div class="ly" id="ly-confidence" hidden>
+              <label class="field">Measure
+                <select id="cf-measure">
+                  <option value="top">Winning class's score</option>
+                  <option value="margin">Margin over the runner-up</option>
+                </select>
+              </label>
+              <p class="note">Low values mark pixels where the model hesitates between classes. Scores are relative confidence (ensemble softmax), not calibrated probabilities.</p>
+            </div>
+          </div>
+
+          <div class="group" id="thrgroup">
+            <h3>Confidence threshold</h3>
+            <label class="field slider">Winning score ≥ <input type="range" id="thr" min="0" max="0.95" step="0.05" value="0" aria-describedby="thrnote"><output id="o-thr">off</output></label>
+            <label class="field">Pixels below the threshold
+              <select id="thr-mode">
+                <option value="grey">Show as “uncertain” (grey)</option>
+                <option value="hide">Hide</option>
+              </select>
+            </label>
+            <p class="note" id="thrnote">Off = every pixel takes its highest-scoring class (the published rule). Raising it keeps only pixels the model is sure of: fewer false positives, more misses. The same threshold applies to the Analyze tab.</p>
+          </div>
+
+          <div class="group">
+            <h3>Display</h3>
+            <label class="field slider">Opacity <input type="range" id="opacity" min="20" max="100" step="5" value="85"><output id="o-opacity">85%</output></label>
+            <label class="chk"><input type="checkbox" id="clip"> Show the layer only inside the area</label>
+            <label class="chk"><input type="checkbox" id="inspect" checked> Click the map to read a pixel's six scores</label>
+          </div>
+
+          <div class="group" data-hasaoi hidden>
+            <h3>Save a map image</h3>
+            <div class="two">
+              <label class="field">Size
+                <select id="img-size">
+                  <option value="1080p">1920 px</option>
+                  <option value="1440p" selected>2560 px</option>
+                  <option value="4k">3840 px</option>
+                </select>
+              </label>
+              <label class="field">Shape
+                <select id="img-aspect">
+                  <option value="auto">Fit the area</option>
+                  <option value="16:9">16:9</option>
+                  <option value="4:3">4:3</option>
+                  <option value="1:1">1:1</option>
+                  <option value="a4l">A4 landscape</option>
+                  <option value="a4p">A4 portrait</option>
+                </select>
+              </label>
+            </div>
+            <div class="btnrow"><button class="btn" type="button" id="img-save">Save PNG with legend</button></div>
+            <p class="note">The current layer over a hillshade, with the area, legend, scale bar and credits.</p>
+          </div>
+        </section>
+
+        <!-- ANALYZE -->
+        <section class="tab" id="tab-analyze" role="tabpanel" hidden>
+          <div data-needaoi>
+            <p class="needaoi">Choose an area first (Area tab), or start with the whole country.</p>
+            <div class="btnrow"><button class="btn primary" type="button" id="an-mm">Analyse all of Myanmar</button></div>
+          </div>
+          <div data-hasaoi hidden>
+            <div class="progress" id="an-progress" hidden><span></span></div>
+            <p class="note" id="an-status"></p>
+            <div id="an-body" hidden>
+              <div class="group">
+                <div class="tiles" id="an-tiles"></div>
+                <div class="two">
+                  <label class="field">Count each pixel as
+                    <select id="an-count">
+                      <option value="hard">its winning class</option>
+                      <option value="soft">its scores (score-weighted)</option>
+                    </select>
+                  </label>
+                  <label class="field slider compact">Threshold <input type="range" id="thr2" min="0" max="0.95" step="0.05" value="0"><output id="o-thr2">off</output></label>
+                </div>
+              </div>
+              <div class="group">
+                <div class="chart" id="ch-comp"></div>
+                <div class="tscroll"><table class="stattable" id="an-table"></table></div>
+                <p class="note" id="an-tablenote"></p>
+                <p class="callout">In Myanmar, ForTy maps almost no <b>Planted forest</b> (its score never exceeds 0.01 inside the country) and only about 140 km² of <b>Plantation forest</b> nationwide. Teak and other plantations in Myanmar are therefore counted under other classes. Check any planted area against local data.</p>
+              </div>
+              <div class="group">
+                <div class="chart" id="ch-conf"></div>
+              </div>
+              <div class="group">
+                <h3>Breakdown</h3>
+                <div class="seg" role="radiogroup" aria-label="Breakdown level" id="bdlevel">
+                  <button type="button" data-lv="3" aria-pressed="true">Township</button>
+                  <button type="button" data-lv="2" aria-pressed="false">District</button>
+                  <button type="button" data-lv="1" aria-pressed="false">State/Region</button>
+                </div>
+                <label class="field">Sort by
+                  <select id="bdmetric"></select>
+                </label>
+                <label class="chk"><input type="checkbox" id="bd-map"> Show this column as a map (covers the forest layer)</label>
+                <div class="tscroll tall"><table class="bdtable" id="bdtable"></table></div>
+                <p class="note" id="bdnote"></p>
+              </div>
+              <div class="group">
+                <h3>Downloads</h3>
+                <div class="btnrow">
+                  <button class="btn" type="button" id="dl-csv">Summary CSV</button>
+                  <button class="btn" type="button" id="dl-bdcsv">Breakdown CSV</button>
+                  <button class="btn" type="button" id="dl-json">All statistics (JSON)</button>
+                </div>
+                <div class="btnrow">
+                  <button class="btn" type="button" data-tif="class">GeoTIFF: classes</button>
+                  <button class="btn" type="button" data-tif="scores">GeoTIFF: six scores</button>
+                  <button class="btn" type="button" data-tif="confidence">GeoTIFF: confidence</button>
+                </div>
+                <p class="note">GeoTIFFs are native 10 m on the UTM grid (EPSG:32646 or 32647), cut into tiles with a .vrt for large areas.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABOUT -->
+        <section class="tab" id="tab-about" role="tabpanel" hidden>
+          <div id="about"></div>
+        </section>
+      </div>
+    </aside>
+  </main>
+</div>
+<div id="tip" hidden></div>
+<div class="modal" id="modal" hidden><div class="modal-card" role="dialog" aria-modal="true"><button class="iconbtn close" type="button" aria-label="Close" id="modalclose">×</button><div id="modalbody"></div></div></div>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/leaflet-geoman-free/leaflet-geoman.min.js"></script>
+<script src="vendor/topojson-client/topojson-client.min.js"></script>
+<script src="vendor/turf/turf.min.js"></script>
+<script src="vendor/proj4/proj4.js"></script>
+<script src="vendor/togeojson/togeojson.umd.js"></script>
+<script src="vendor/jszip/jszip.min.js"></script>
+<script src="vendor/shpjs/shp.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
