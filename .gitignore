@@ -19,3 +19,6 @@ _prev_*/
 
 # Vercel CLI link (per machine)
 .vercel/
+
+.vercel
+.env*
